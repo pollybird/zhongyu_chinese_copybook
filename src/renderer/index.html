@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN" id="docroot">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;"
+    />
+    <title data-i18n="appName">钟毓汉字字帖生成器</title>
+  </head>
+  <body>
+    <div id="app">
+      <div class="tabbar">
+        <div class="tabs" id="tabs"></div>
+        <button class="tab-new" id="btn-new-tab" data-i18n-title="ui.newTabTip" title="新建工程 (Ctrl+N)">＋</button>
+      </div>
+      <div class="workspace">
+        <aside class="sidebar">
+          <section class="panel">
+            <h3 class="panel-title" data-i18n="ui.inputContent">输入内容</h3>
+            <textarea
+              id="inp-text"
+              class="textarea"
+              data-i18n-placeholder="ui.textPlaceholder"
+              placeholder="请输入要生成字帖的汉字..."
+            ></textarea>
+            <div class="ocr-row">
+              <button
+                class="btn btn-default btn-sm"
+                id="btn-ocr"
+                data-i18n="ui.ocrBtn"
+                data-i18n-title="ui.ocrBtnTip"
+                title="截取屏幕区域并识别其中的文字"
+              >截图识别</button>
+              <select class="input ocr-lang" id="ocr-lang" data-i18n-title="ui.ocrLangTip" title="OCR 识别语言">
+                <option value="chi_sim" data-i18n="ui.ocrLangChi">中文简体</option>
+                <option value="eng" data-i18n="ui.ocrLangEng">英文</option>
+                <option value="eng+chi_sim" data-i18n="ui.ocrLangBoth">英文+中文</option>
+              </select>
+            </div>
+            <div class="ocr-status" id="ocr-status" hidden></div>
+          </section>
+
+          <section class="panel">
+            <h3 class="panel-title" data-i18n="ui.settings">调整设置</h3>
+            <div class="grid2">
+              <label class="field-label" for="inp-font-name" data-i18n="ui.fontName">字体:</label>
+              <select class="input" id="inp-font-name"></select>
+              <label class="field-label" for="inp-font-size" data-i18n="ui.fontSize">字体大小:</label>
+              <input type="number" class="input" id="inp-font-size" min="10" max="100" step="1" />
+              <label class="field-label" for="inp-offset-x" data-i18n="ui.offsetX">X轴偏移:</label>
+              <input type="number" class="input" id="inp-offset-x" min="-50" max="50" step="1" />
+              <label class="field-label" for="inp-offset-y" data-i18n="ui.offsetY">Y轴偏移:</label>
+              <input type="number" class="input" id="inp-offset-y" min="-50" max="50" step="1" />
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3 class="panel-title" data-i18n="ui.gridType">线格类型</h3>
+            <select class="input" id="inp-grid-type">
+              <!-- value 为工程文件枚举令牌（中文，勿翻译），显示文本走 i18n -->
+              <option value="米字格" data-i18n="ui.gridMi">米字格</option>
+              <option value="田字格" data-i18n="ui.gridTian">田字格</option>
+              <option value="回宫格" data-i18n="ui.gridHui">回宫格</option>
+              <option value="作文纸" data-i18n="ui.gridZuowen">作文纸</option>
+            </select>
+          </section>
+
+          <section class="panel">
+            <h3 class="panel-title" data-i18n="ui.mode">生成模式</h3>
+            <select class="input" id="inp-mode">
+              <option value="描红" data-i18n="ui.modeTrace">描红</option>
+              <option value="抄写" data-i18n="ui.modeCopy">抄写</option>
+              <option value="描红+抄写" data-i18n="ui.modeTraceCopy">描红+抄写</option>
+              <option value="纯字帖" data-i18n="ui.modeCopybook">纯字帖</option>
+            </select>
+          </section>
+
+          <section class="panel">
+            <h3 class="panel-title" data-i18n="ui.titleSettings">标题设置</h3>
+            <label class="field-label" for="inp-title" data-i18n="ui.titleLabel">字帖标题:</label>
+            <input type="text" class="input" id="inp-title" />
+          </section>
+
+          <section class="panel">
+            <h3 class="panel-title" data-i18n="ui.customHeader">自定义头部</h3>
+            <div class="header-fields">
+              <label class="field-label">字段1:</label>
+              <input type="text" class="input header-field" id="inp-field-0" />
+              <label class="field-label">字段2:</label>
+              <input type="text" class="input header-field" id="inp-field-1" />
+              <label class="field-label">字段3:</label>
+              <input type="text" class="input header-field" id="inp-field-2" />
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3 class="panel-title" data-i18n="ui.pageSettings">页码设置</h3>
+            <div class="grid2">
+              <label class="field-label" for="inp-page-format" data-i18n="ui.pageFormat">页码格式:</label>
+              <select class="input" id="inp-page-format">
+                <option value="不显示" data-i18n="ui.pageFormatNone">不显示</option>
+                <option value="第1页" data-i18n="ui.pageFormatNum">第1页</option>
+                <option value="第一页" data-i18n="ui.pageFormatCnNum">第一页</option>
+                <option value="第1页 共x页" data-i18n="ui.pageFormatNumTotal">第1页 共x页</option>
+                <option value="第一页 共X页" data-i18n="ui.pageFormatCnNumTotal">第一页 共X页</option>
+              </select>
+              <label class="field-label" for="inp-page-position" data-i18n="ui.pagePosition">页码位置:</label>
+              <select class="input" id="inp-page-position">
+                <option value="底部居中" data-i18n="ui.pagePosBottomCenter">底部居中</option>
+                <option value="底部靠左" data-i18n="ui.pagePosBottomLeft">底部靠左</option>
+                <option value="底部靠右" data-i18n="ui.pagePosBottomRight">底部靠右</option>
+              </select>
+            </div>
+          </section>
+        </aside>
+
+        <main class="preview-area">
+          <div class="preview-toolbar">
+            <div class="preview-title" data-i18n="ui.preview">预览效果</div>
+            <div class="pager">
+              <button
+                class="btn btn-default pager-btn"
+                id="btn-prev"
+                data-i18n-title="ui.prevTip"
+                title="上一页 (PageUp)"
+              >←</button>
+              <span class="page-label" id="page-label">第 1 页 / 共 1 页</span>
+              <button
+                class="btn btn-default pager-btn"
+                id="btn-next"
+                data-i18n-title="ui.nextTip"
+                title="下一页 (PageDown)"
+              >→</button>
+            </div>
+            <button class="btn btn-primary" id="btn-export" data-i18n="ui.exportPdf">导出PDF</button>
+          </div>
+          <div class="preview-scroll" id="preview-scroll">
+            <div class="paper-wrap">
+              <canvas id="preview-canvas"></canvas>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
