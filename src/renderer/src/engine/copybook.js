@@ -78,6 +78,30 @@ export function calculatePages(text, gridType, mode) {
 }
 
 /**
+ * 对全部内容进行分页排版，返回每页的 rows（供 renderPage 直接复用，
+ * 预览翻页时不再重复排版）。
+ */
+export function buildPages(settings) {
+  const text = settings.text || ''
+  const total = calculatePages(text, settings.grid_type, settings.mode)
+  const pages = []
+  for (let i = 0; i < total; i++) {
+    const { rows } = layoutPage(
+      text,
+      settings.grid_type,
+      settings.mode,
+      i,
+      settings.offset_x || 0,
+      settings.offset_y || 0,
+      settings.font_size,
+      settings.font_name
+    )
+    pages.push(rows)
+  }
+  return pages
+}
+
+/**
  * 排版单页：将文本按行分配到格子中
  * 返回 { rows: [{ y, cells: [{ x, char, color }] }], nextLine, nextChar }
  */
@@ -131,8 +155,9 @@ export function layoutPage(text, gridType, mode, pageIndex, offsetX, offsetY, fo
         for (let j = 0; j < charsPerRow; j++) {
           const charIdx = startCharIdx + j
           if (charIdx >= info.line.length) break
-          const x = MARGIN + j * gridSize + offsetX
-          const charY = y + offsetY
+          // 格子中心坐标（textAlign:center / textBaseline:middle）
+          const x = MARGIN + j * gridSize + offsetX + gridSize / 2
+          const charY = y + offsetY + gridSize / 2
           const color = TRACE_MODES.includes(mode) ? TRACE_COLOR : BLACK
           cells.push({ x, y: charY, char: info.line[charIdx], color })
         }
@@ -252,11 +277,12 @@ function getPageText(format, currentPage, totalPages) {
 /**
  * 在指定 ctx 上渲染一页
  * @param {CanvasRenderingContext2D} ctx 已按 dpr 缩放的上下文
+ * @param {Array} rows buildPages 返回的单页 rows
  * @param {object} settings 工程设置
  * @param {number} pageIndex 从 0 开始
  * @param {number} totalPages 总页数
  */
-export function renderPage(ctx, settings, pageIndex, totalPages) {
+export function renderPage(ctx, rows, settings, pageIndex, totalPages) {
   const { gridSize, rowsPerPage, colsPerPage, lineSpacing } = getGridParams(settings.grid_type)
 
   ctx.save()
@@ -303,53 +329,15 @@ export function renderPage(ctx, settings, pageIndex, totalPages) {
     }
   }
 
-  // 绘制字符
-  const lines = (settings.text || '').split('\n')
-  const startRow = pageIndex * rowsPerPage
-  let currentRow = 0
-
+  // 绘制字符：直接复用 layoutPage 预计算的 cells（含中心坐标与颜色）
   ctx.font = `${settings.font_size}px "${settings.font_name}"`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-
-  for (const line of lines) {
-    if (!line) {
-      currentRow += 1
-      continue
+  for (const row of rows) {
+    for (const cell of row.cells) {
+      ctx.fillStyle = cell.color
+      ctx.fillText(cell.char, cell.x, cell.y)
     }
-
-    let lineRows = Math.ceil(line.length / colsPerPage)
-    if (COPY_MODES.includes(settings.mode)) {
-      lineRows *= 2
-    }
-
-    if (currentRow + lineRows <= startRow) {
-      currentRow += lineRows
-      continue
-    }
-    if (currentRow >= startRow + rowsPerPage) break
-
-    const lineStartRow = Math.max(currentRow, startRow)
-    const lineEndRow = Math.min(currentRow + lineRows, startRow + rowsPerPage)
-
-    const startCharIdx = COPY_MODES.includes(settings.mode)
-      ? Math.floor((lineStartRow - currentRow) / 2) * colsPerPage
-      : (lineStartRow - currentRow) * colsPerPage
-
-    let charIdx = startCharIdx
-    for (let i = lineStartRow - startRow; i < lineEndRow - startRow; i++) {
-      if (COPY_MODES.includes(settings.mode) && i % 2 === 1) continue
-
-      for (let j = 0; j < colsPerPage; j++) {
-        if (charIdx >= line.length) break
-        const x = MARGIN + j * gridSize + settings.offset_x + gridSize / 2
-        const y = CONTENT_TOP + i * (gridSize + lineSpacing) + settings.offset_y + gridSize / 2
-        ctx.fillStyle = TRACE_MODES.includes(settings.mode) ? TRACE_COLOR : BLACK
-        ctx.fillText(line[charIdx], x, y)
-        charIdx++
-      }
-    }
-    currentRow += lineRows
   }
 
   // 绘制页码
@@ -383,13 +371,14 @@ export function renderPage(ctx, settings, pageIndex, totalPages) {
 }
 
 /** 便捷方法：排版 + 渲染某一页到 canvas */
-export function drawPageToCanvas(canvas, settings, pageIndex, dpr = 1) {
-  const totalPages = calculatePages(settings.text || '', settings.grid_type, settings.mode)
-  const safeIndex = Math.min(Math.max(0, pageIndex), totalPages - 1)
+export function drawPageToCanvas(canvas, settings, pageIndex, dpr = 1, pages = null) {
+  const allPages = pages || buildPages(settings)
+  const total = allPages.length
+  const safeIndex = Math.min(Math.max(0, pageIndex), total - 1)
   canvas.width = PAGE_W * dpr
   canvas.height = PAGE_H * dpr
   const ctx = canvas.getContext('2d')
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  renderPage(ctx, settings, safeIndex, totalPages)
-  return { totalPages, pageIndex: safeIndex }
+  renderPage(ctx, allPages[safeIndex], settings, safeIndex, total)
+  return { totalPages: total, pageIndex: safeIndex }
 }

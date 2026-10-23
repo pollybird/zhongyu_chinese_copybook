@@ -4,7 +4,7 @@
 
 A desktop application that generates Chinese character copybooks. Enter Chinese text, pick a grid type and a generation mode, preview in real time, then print directly or export to PDF.
 
-Current version: **2.0.1** (rewritten from PyQt6 to Electron since 2.0.0, see [UPGRADE.md](UPGRADE.md))
+Current version: **2.0.2** (rewritten from PyQt6 to Electron since 2.0.0, see [UPGRADE.md](UPGRADE.md))
 
 Copyright (c) 2026 Taizhou Jiangyan Zhongyu Information Technology Co., Ltd. · Website: https://www.tzzhy.cn/
 
@@ -108,10 +108,11 @@ Requires Node.js 18 or later.
 │   ├── main/              # Main process (windows, menus, IPC, OCR, print & PDF export)
 │   ├── preload/           # Preload scripts (contextIsolation safe bridge)
 │   ├── renderer/          # Renderer process (index.html main UI, print.html print rendering, preview.html print preview, sel.html screen selection)
-│   └── shared/            # i18n.js shared translation module (main + renderer)
+│   └── shared/            # i18n.js shared translation module, version.js single source of version (main + renderer)
 │       └── src/
 │           ├── engine/    # copybook.js layout engine, zyzcb-format.js project file I/O
 │           └── assets/    # agreement texts
+├── tests/                 # Automated tests (node:test, run with npm test)
 ├── resources/             # Icons, OCR language data (ocr-data)
 └── out/                   # Build output
 ```

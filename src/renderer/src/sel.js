@@ -83,17 +83,13 @@ window.addEventListener('keydown', (e) => {
 overlay.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return
   const p = pos(e)
-  // 若点击落在已有选区内：不重置选区（保留双击确认），仅记录起始点
-  if (rect && pointInRect(p)) {
-    dragging = false
-    moved = false
-    start = p
-    return
-  }
+  // 点击落在已有选区内：完整保留选区与锚点，交给 dblclick 确认。
+  // 这里不能改写 start，否则 normRect 会把选区算成"点击点→旧终点"的错误区域。
+  if (rect && pointInRect(p)) return
   dragging = true
   moved = false
   start = p
-  rect = start
+  rect = { ...p }
   hint.style.display = 'none'
   draw()
 })
@@ -118,8 +114,9 @@ overlay.addEventListener('mouseup', () => {
 })
 
 overlay.addEventListener('dblclick', () => {
-  // 双击确认：已有选区时直接用；单击未形成选区时双击无效
-  if (rect) confirm()
+  // 双击确认：已有选区且当前未拖拽时确认。
+  // 加 !dragging 判断，避免拖拽中松手的双击事件误触发确认。
+  if (rect && !dragging) confirm()
 })
 
 function cancel() {

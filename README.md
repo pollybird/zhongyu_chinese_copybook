@@ -4,7 +4,7 @@
 
 生成汉字字帖的桌面应用。输入汉字内容，选择格子类型与生成模式，即可实时预览，并可直接打印、打印预览或导出为 PDF。
 
-当前版本：**2.0.1**（自 2.0.0 起由 PyQt6 重构为 Electron，见 [UPGRADE.md](UPGRADE.md)）
+当前版本：**2.0.2**（自 2.0.0 起由 PyQt6 重构为 Electron，见 [UPGRADE.md](UPGRADE.md)）
 
 版权所有 (c) 2026 泰州姜堰钟毓信息技术有限公司 · 官网：https://www.tzzhy.cn/
 
@@ -108,10 +108,11 @@ npx electron-builder --mac zip
 │   ├── main/              # 主进程（窗口、菜单、IPC、OCR、打印与 PDF 导出）
 │   ├── preload/           # 预加载脚本（contextIsolation 安全桥接）
 │   ├── renderer/          # 渲染进程（index.html 主界面、print.html 打印渲染、preview.html 打印预览、sel.html 截图选区）
-│   └── shared/            # i18n.js 共用翻译模块（主进程与渲染进程共用）
+│   └── shared/            # i18n.js 共用翻译模块、version.js 版本号单一来源（主进程与渲染进程共用）
 │       └── src/
 │           ├── engine/    # copybook.js 排版引擎、zyzcb-format.js 工程文件读写
 │           └── assets/    # 协议文本
+├── tests/                 # 自动化测试（node:test，npm test 运行）
 ├── resources/             # 图标、版权文本、OCR 语言数据（ocr-data）
 └── out/                   # 构建产物
 ```

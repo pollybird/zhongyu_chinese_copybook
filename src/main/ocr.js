@@ -5,6 +5,9 @@ import { tmpdir } from 'os'
 let getMainWindow = null
 let selWindows = []
 const ocrWorkers = new Map()
+// OCR 引擎空闲回收：空闲 5 分钟后自动销毁，释放内存
+const OCR_IDLE_MS = 5 * 60 * 1000
+const idleTimers = new Map()
 let translator = (key) => key
 
 // 懒加载 tesseract.js，避免打包后主进程启动时模块初始化失败导致应用无法打开
@@ -31,6 +34,37 @@ export function registerOcr(getWin, resolvePreload, t) {
   ipcMain.on('ocr:region-selected', (_e, dataUrl) => finishSelection(dataUrl))
   ipcMain.on('ocr:capture-cancel', () => cancelSelection())
   ipcMain.handle('ocr:recognize', (_e, { dataUrl, lang }) => recognize(dataUrl, lang))
+
+  // 退出前销毁所有 OCR worker，避免子进程残留
+  app.on('before-quit', () => {
+    for (const [, worker] of ocrWorkers) {
+      try { worker.terminate() } catch (_) { /* ignore */ }
+    }
+    ocrWorkers.clear()
+    for (const timer of idleTimers.values()) clearTimeout(timer)
+    idleTimers.clear()
+  })
+}
+
+function clearIdleTimer(lang) {
+  const timer = idleTimers.get(lang)
+  if (timer) {
+    clearTimeout(timer)
+    idleTimers.delete(lang)
+  }
+}
+
+function scheduleIdleCleanup(lang) {
+  clearIdleTimer(lang)
+  const timer = setTimeout(async () => {
+    idleTimers.delete(lang)
+    const worker = ocrWorkers.get(lang)
+    if (worker) {
+      ocrWorkers.delete(lang)
+      try { await worker.terminate() } catch (_) { /* ignore */ }
+    }
+  }, OCR_IDLE_MS)
+  idleTimers.set(lang, timer)
 }
 
 function showMain() {
@@ -144,6 +178,7 @@ function cancelSelection() {
 
 // tesseract.js worker 按语言缓存（本地语言数据，离线可用）
 async function getWorker(lang) {
+  clearIdleTimer(lang)
   if (ocrWorkers.has(lang)) return ocrWorkers.get(lang)
   const _createWorker = await getCreateWorker()
   const worker = await _createWorker(lang, 1, {
@@ -159,7 +194,18 @@ async function recognize(dataUrl, lang) {
   const base64 = String(dataUrl).split(',')[1]
   if (!base64) throw new Error(translator('err.invalidImage'))
   const buffer = Buffer.from(base64, 'base64')
-  const worker = await getWorker(lang || 'eng')
-  const { data } = await worker.recognize(buffer)
-  return data.text
+  const langKey = lang || 'eng'
+  const worker = await getWorker(langKey)
+  try {
+    const { data } = await worker.recognize(buffer)
+    return data.text
+  } catch (e) {
+    // 识别异常时销毁该语言 worker，下次重建
+    ocrWorkers.delete(langKey)
+    try { await worker.terminate() } catch (_) { /* ignore */ }
+    throw e
+  } finally {
+    // 空闲 5 分钟后自动回收
+    if (ocrWorkers.has(langKey)) scheduleIdleCleanup(langKey)
+  }
 }

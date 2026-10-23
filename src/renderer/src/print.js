@@ -42,5 +42,6 @@ window.api.onPrintData(async (settings) => {
     window.api.printRendered()
   } catch (err) {
     console.error('PDF 页面渲染失败', err)
+    window.api.printError(err && err.message ? err.message : String(err))
   }
 })

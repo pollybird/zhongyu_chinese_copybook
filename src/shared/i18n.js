@@ -10,6 +10,8 @@
  * （见 defaultDoc）。
  */
 
+import { APP_VERSION } from './version.js'
+
 export function isZhLocale(locale) {
   return /^zh([-_]|$)/i.test(String(locale || ''))
 }
@@ -136,6 +138,9 @@ const messages = {
       printIncomplete: '打印未完成: {detail}',
       printUnknown: '未知错误',
       previewFailTitle: '打开预览失败',
+      rendererHungTitle: '程序无响应',
+      rendererHung: '界面进程没有响应，继续关闭可能丢失未保存的修改。是否强制关闭？',
+      forceClose: '强制关闭',
       ocrSelecting: '请拖拽框选要识别的文字区域（Esc 取消）',
       ocrRecognizing: '正在识别文字...',
       ocrEmptyTitle: '识别结果',
@@ -177,7 +182,7 @@ const messages = {
 
     about: `钟毓汉字字帖生成器（Electron 版）
 
-版本：2.0.1
+版本：${APP_VERSION}
 作者：泰州姜堰钟毓信息技术有限公司
 官网：https://www.tzzhy.cn/
 功能：生成汉字字帖，支持多种格子类型和生成模式`
@@ -304,6 +309,10 @@ const messages = {
       printIncomplete: 'Printing did not complete: {detail}',
       printUnknown: 'Unknown error',
       previewFailTitle: 'Preview Failed',
+      rendererHungTitle: 'Application Not Responding',
+      rendererHung:
+        'The interface process is not responding. Closing now may lose unsaved changes. Force close?',
+      forceClose: 'Force Close',
       ocrSelecting: 'Drag to select the text area (Esc to cancel)',
       ocrRecognizing: 'Recognizing text...',
       ocrEmptyTitle: 'Recognition Result',
@@ -345,7 +354,7 @@ Shortcuts:
 
     about: `Zhongyu Chinese Copybook Generator (Electron Edition)
 
-Version: 2.0.1
+Version: ${APP_VERSION}
 Author: Taizhou Jiangyan Zhongyu Information Technology Co., Ltd.
 Website: https://www.tzzhy.cn/
 Features: Generate Chinese copybooks with multiple grid types and modes`

@@ -1,5 +1,5 @@
 import './styles.css'
-import { drawPageToCanvas, calculatePages } from './engine/copybook.js'
+import { drawPageToCanvas, buildPages } from './engine/copybook.js'
 import {
   DEFAULT_SETTINGS,
   normalizeSettings,
@@ -63,7 +63,8 @@ function createTab(state = null) {
     state: state || cloneDefaults(),
     currentPage: 0,
     filePath: null,
-    modified: false
+    modified: false,
+    pages: null // 排版缓存，内容变化后失效重建
   }
   tabs.push(tab)
   return tab
@@ -240,10 +241,21 @@ function bindInputs() {
   })
 
   const bindNumber = (input, key, min, max) => {
+    // 输入过程中允许空值 / 负号等中间态，不回写输入框；失焦时再归一
     input.addEventListener('input', () => {
       if (syncing) return
-      activeTab.state[key] = clampInt(input, min, max)
+      const raw = parseInt(input.value, 10)
+      if (!Number.isFinite(raw)) return
+      activeTab.state[key] = Math.min(max, Math.max(min, raw))
       markModified()
+    })
+    input.addEventListener('blur', () => {
+      if (syncing || !activeTab) return
+      const next = clampInt(input, min, max)
+      if (next !== activeTab.state[key]) {
+        activeTab.state[key] = next
+        markModified()
+      }
     })
   }
   bindNumber(els.fontSize, 'font_size', 10, 100)
@@ -297,6 +309,7 @@ function bindInputs() {
 function markModified() {
   if (syncing || !activeTab) return
   activeTab.modified = true
+  activeTab.pages = null // 内容变化，失效排版缓存
   renderTabs()
   schedulePreview()
 }
@@ -304,6 +317,12 @@ function markModified() {
 // ---------------- 预览 ----------------
 function dpr() {
   return Math.min(window.devicePixelRatio || 1, 2)
+}
+
+// 获取当前标签页的排版结果，缓存避免翻页重复排版
+function pagesFor(tab) {
+  if (!tab.pages) tab.pages = buildPages(tab.state)
+  return tab.pages
 }
 
 function renderPreview() {
@@ -318,16 +337,12 @@ function renderPreview() {
     els.next.disabled = true
     return
   }
-  const { totalPages } = drawPageToCanvas(
-    els.canvas,
-    activeTab.state,
-    activeTab.currentPage,
-    dpr()
-  )
+  const pages = pagesFor(activeTab)
+  const totalPages = pages.length
   if (activeTab.currentPage > totalPages - 1) {
     activeTab.currentPage = totalPages - 1
-    drawPageToCanvas(els.canvas, activeTab.state, activeTab.currentPage, dpr())
   }
+  drawPageToCanvas(els.canvas, activeTab.state, activeTab.currentPage, dpr(), pages)
   els.pageLabel.textContent = t('ui.pageOf', {
     current: activeTab.currentPage + 1,
     total: totalPages
@@ -350,11 +365,7 @@ function prevPage() {
 }
 
 function nextPage() {
-  const totalPages = calculatePages(
-    activeTab.state.text,
-    activeTab.state.grid_type,
-    activeTab.state.mode
-  )
+  const totalPages = pagesFor(activeTab).length
   if (activeTab.currentPage < totalPages - 1) {
     activeTab.currentPage++
     renderPreview()
@@ -396,6 +407,7 @@ async function loadFromPath(filePath) {
     target.filePath = filePath
     target.modified = false
     target.currentPage = 0
+    target.pages = null
     activeTab = target
     fillForm(state)
     renderTabs()
@@ -552,7 +564,9 @@ function bindOcr() {
       }
       els.text.focus()
       els.text.select()
-      document.execCommand('insertText', false, clean)
+      // 用 setRangeText 替换已废弃的 execCommand('insertText')，保留撤销栈
+      els.text.setRangeText(clean, els.text.selectionStart, els.text.selectionEnd, 'end')
+      els.text.dispatchEvent(new Event('input', { bubbles: true }))
       els.ocrStatus.textContent = t('msg.ocrDone', { n: clean.length })
       setTimeout(() => {
         els.ocrStatus.hidden = true
@@ -614,5 +628,11 @@ async function init() {
 window.__appHooks = {
   canClose: canCloseAll
 }
+
+// 关闭窗口确认走 IPC：主进程请求 → 渲染进程检查未保存标签页 → 回复结果
+window.api.onCloseCheckRequest(async () => {
+  const allowed = await canCloseAll()
+  window.api.sendCloseCheckResult(allowed)
+})
 
 init()

@@ -1,6 +1,6 @@
 {
   "name": "zhy-cn-copybook-electron",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "钟毓汉字字帖生成器",
   "main": "out/main/index.js",
   "author": "泰州姜堰钟毓信息技术有限公司",
@@ -10,7 +10,8 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "pack": "electron-vite build && electron-builder --dir",
-    "dist": "electron-vite build && electron-builder"
+    "dist": "electron-vite build && electron-builder",
+    "test": "node --experimental-default-type=module --test tests/"
   },
   "devDependencies": {
     "electron": "^33.4.11",

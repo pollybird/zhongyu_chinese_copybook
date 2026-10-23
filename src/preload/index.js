@@ -40,6 +40,16 @@ contextBridge.exposeInMainWorld('api', {
   },
   printRendered: () => ipcRenderer.send('print:rendered'),
   previewPrint: () => ipcRenderer.send('print:preview-print'),
+  // 打印/PDF 渲染失败时立即通知主进程，避免 30 秒空等
+  printError: (message) => ipcRenderer.send('print:error', message),
+
+  // 关闭窗口确认（走 IPC，不再注入脚本判断未保存内容）
+  onCloseCheckRequest: (callback) => {
+    const handler = () => callback()
+    ipcRenderer.on('app:request-close-check', handler)
+    return () => ipcRenderer.removeListener('app:request-close-check', handler)
+  },
+  sendCloseCheckResult: (allowed) => ipcRenderer.send('app:close-check-result', allowed),
 
   // 截图 OCR（主窗口）
   startOcrCapture: () => ipcRenderer.send('ocr:start-capture'),
