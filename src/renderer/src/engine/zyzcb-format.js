@@ -19,14 +19,15 @@ export const DEFAULT_SETTINGS = Object.freeze({
   page_format: '不显示',
   page_position: '底部居中',
   current_page: 1,
-  total_pages: 1
+  total_pages: 1,
+  // 格子线条颜色与描红文字颜色（默认值与 2.0.2 及更早版本的固定配色一致）
+  line_color: '#008000',
+  trace_color: '#ffc0c0'
 })
 
 export function normalizeSettings(raw = {}) {
   const d = DEFAULT_SETTINGS
-  const fields = Array.isArray(raw.fields)
-    ? raw.fields.map(String).slice(0, 3)
-    : [...d.fields]
+  const fields = Array.isArray(raw.fields) ? raw.fields.map(String).slice(0, 3) : [...d.fields]
   return {
     text: typeof raw.text === 'string' ? raw.text : d.text,
     font_name: typeof raw.font_name === 'string' ? raw.font_name : d.font_name,
@@ -40,8 +41,20 @@ export function normalizeSettings(raw = {}) {
     page_format: PAGE_FORMATS.includes(raw.page_format) ? raw.page_format : d.page_format,
     page_position: PAGE_POSITIONS.includes(raw.page_position) ? raw.page_position : d.page_position,
     current_page: numOr(raw.current_page, d.current_page),
-    total_pages: numOr(raw.total_pages, d.total_pages)
+    total_pages: numOr(raw.total_pages, d.total_pages),
+    line_color: colorOr(raw.line_color, d.line_color),
+    trace_color: colorOr(raw.trace_color, d.trace_color)
   }
+}
+
+const HEX_COLOR = /^#[0-9a-f]{3}([0-9a-f]{3})?$/i
+
+/** 只接受 #rgb / #rrggbb 形式的颜色值，其余回落默认；3 位简写统一展开为 6 位，
+ *  因为 <input type="color"> 只接受 7 字符的 #rrggbb，非法值会被浏览器置为 #000000 */
+function colorOr(v, fallback) {
+  if (typeof v !== 'string' || !HEX_COLOR.test(v)) return fallback
+  const hex = v.toLowerCase()
+  return hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex
 }
 
 const GRID_TYPES = ['米字格', '田字格', '回宫格', '作文纸']
@@ -221,7 +234,8 @@ function parsePickle(bytes) {
         break
       case 0x2e: // . STOP
         return stack.length ? stack[stack.length - 1] : null
-      case 0x64: { // d DICT
+      case 0x64: {
+        // d DICT
         popToMark()
         stack.push({})
         break
@@ -229,13 +243,15 @@ function parsePickle(bytes) {
       case 0x7d: // } EMPTY_DICT
         stack.push({})
         break
-      case 0x73: { // s SETITEM
+      case 0x73: {
+        // s SETITEM
         const v = stack.pop()
         const k = stack.pop()
         stack[stack.length - 1][k] = v
         break
       }
-      case 0x75: { // u SETITEMS
+      case 0x75: {
+        // u SETITEMS
         const items = popToMark()
         const dict = stack[stack.length - 1]
         for (let i = 0; i + 1 < items.length; i += 2) dict[items[i]] = items[i + 1]
@@ -247,12 +263,14 @@ function parsePickle(bytes) {
       case 0x5d: // ] EMPTY_LIST
         stack.push([])
         break
-      case 0x61: { // a APPEND
+      case 0x61: {
+        // a APPEND
         const v = stack.pop()
         stack[stack.length - 1].push(v)
         break
       }
-      case 0x65: { // e APPENDS
+      case 0x65: {
+        // e APPENDS
         const items = popToMark()
         stack[stack.length - 1].push(...items)
         break
@@ -275,7 +293,8 @@ function parsePickle(bytes) {
       case 0x71: // q BINPUT
         memo[r.u8()] = stack[stack.length - 1]
         break
-      case 0x67: { // g GET
+      case 0x67: {
+        // g GET
         const v = memo[parseInt(utf8(r.line()), 10)]
         stack.push(v)
         break
@@ -292,7 +311,8 @@ function parsePickle(bytes) {
       case 0x8c: // SHORT_BINUNICODE
         stack.push(utf8(r.take(r.u8())))
         break
-      case 0x58: { // X BINUNICODE
+      case 0x58: {
+        // X BINUNICODE
         const len = r.i32()
         stack.push(utf8(r.take(len >>> 0)))
         break
@@ -306,7 +326,8 @@ function parsePickle(bytes) {
       case 0x4a: // J BININT4
         stack.push(r.i32())
         break
-      case 0x8a: { // LONG1
+      case 0x8a: {
+        // LONG1
         let v = r.u8()
         if (v & 0x80) v -= 0x100
         stack.push(v)

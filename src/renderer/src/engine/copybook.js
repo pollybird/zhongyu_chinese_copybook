@@ -94,7 +94,8 @@ export function buildPages(settings) {
       settings.offset_x || 0,
       settings.offset_y || 0,
       settings.font_size,
-      settings.font_name
+      settings.font_name,
+      settings.trace_color || TRACE_COLOR
     )
     pages.push(rows)
   }
@@ -105,7 +106,17 @@ export function buildPages(settings) {
  * 排版单页：将文本按行分配到格子中
  * 返回 { rows: [{ y, cells: [{ x, char, color }] }], nextLine, nextChar }
  */
-export function layoutPage(text, gridType, mode, pageIndex, offsetX, offsetY, fontSize, fontName) {
+export function layoutPage(
+  text,
+  gridType,
+  mode,
+  pageIndex,
+  offsetX,
+  offsetY,
+  fontSize,
+  fontName,
+  traceColor = TRACE_COLOR
+) {
   const { gridSize, rowsPerPage, colsPerPage, lineSpacing } = getGridParams(gridType)
 
   const lines = text.split('\n')
@@ -158,7 +169,7 @@ export function layoutPage(text, gridType, mode, pageIndex, offsetX, offsetY, fo
           // 格子中心坐标（textAlign:center / textBaseline:middle）
           const x = MARGIN + j * gridSize + offsetX + gridSize / 2
           const charY = y + offsetY + gridSize / 2
-          const color = TRACE_MODES.includes(mode) ? TRACE_COLOR : BLACK
+          const color = TRACE_MODES.includes(mode) ? traceColor : BLACK
           cells.push({ x, y: charY, char: info.line[charIdx], color })
         }
         nextLine = li
@@ -173,8 +184,8 @@ export function layoutPage(text, gridType, mode, pageIndex, offsetX, offsetY, fo
 }
 
 /** 绘制米字格 */
-function drawMiZiGe(ctx, x, y, size) {
-  ctx.strokeStyle = GRID_COLOR
+function drawMiZiGe(ctx, x, y, size, color) {
+  ctx.strokeStyle = color
   ctx.lineWidth = 0.5
   // 外框
   ctx.strokeRect(x, y, size, size)
@@ -197,8 +208,8 @@ function drawMiZiGe(ctx, x, y, size) {
 }
 
 /** 绘制田字格 */
-function drawTianZiGe(ctx, x, y, size) {
-  ctx.strokeStyle = GRID_COLOR
+function drawTianZiGe(ctx, x, y, size, color) {
+  ctx.strokeStyle = color
   ctx.lineWidth = 0.5
   ctx.strokeRect(x, y, size, size)
   ctx.setLineDash([2, 2])
@@ -212,8 +223,8 @@ function drawTianZiGe(ctx, x, y, size) {
 }
 
 /** 绘制回宫格 */
-function drawHuiGongGe(ctx, x, y, size) {
-  ctx.strokeStyle = GRID_COLOR
+function drawHuiGongGe(ctx, x, y, size, color) {
+  ctx.strokeStyle = color
   ctx.lineWidth = 0.5
   ctx.strokeRect(x, y, size, size)
   ctx.setLineDash([2, 2])
@@ -226,26 +237,26 @@ function drawHuiGongGe(ctx, x, y, size) {
 }
 
 /** 绘制作文纸格子 */
-function drawZuoWenZhi(ctx, x, y, size) {
-  ctx.strokeStyle = GRID_COLOR
+function drawZuoWenZhi(ctx, x, y, size, color) {
+  ctx.strokeStyle = color
   ctx.lineWidth = 0.5
   ctx.strokeRect(x, y, size, size)
 }
 
 /** 绘制格子 */
-function drawGrid(ctx, x, y, size, gridType) {
+function drawGrid(ctx, x, y, size, gridType, color = GRID_COLOR) {
   switch (gridType) {
     case '米字格':
-      drawMiZiGe(ctx, x, y, size)
+      drawMiZiGe(ctx, x, y, size, color)
       break
     case '田字格':
-      drawTianZiGe(ctx, x, y, size)
+      drawTianZiGe(ctx, x, y, size, color)
       break
     case '回宫格':
-      drawHuiGongGe(ctx, x, y, size)
+      drawHuiGongGe(ctx, x, y, size, color)
       break
     case '作文纸':
-      drawZuoWenZhi(ctx, x, y, size)
+      drawZuoWenZhi(ctx, x, y, size, color)
       break
   }
 }
@@ -325,7 +336,7 @@ export function renderPage(ctx, rows, settings, pageIndex, totalPages) {
     for (let col = 0; col < colsPerPage; col++) {
       const x = MARGIN + col * gridSize
       const y = CONTENT_TOP + row * (gridSize + lineSpacing)
-      drawGrid(ctx, x, y, gridSize, settings.grid_type)
+      drawGrid(ctx, x, y, gridSize, settings.grid_type, settings.line_color || GRID_COLOR)
     }
   }
 

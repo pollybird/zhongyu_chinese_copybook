@@ -1,6 +1,6 @@
 {
   "name": "zhy-cn-copybook-electron",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "钟毓汉字字帖生成器",
   "main": "out/main/index.js",
   "author": "泰州姜堰钟毓信息技术有限公司",
@@ -9,15 +9,25 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
+    "test": "node --experimental-default-type=module --test tests/zyzcb-format.test.js tests/engine.test.js tests/update-feed.test.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "pack": "electron-vite build && electron-builder --dir",
     "dist": "electron-vite build && electron-builder",
-    "test": "node --experimental-default-type=module --test tests/"
+    "build:all": "npm run build && electron-builder --linux AppImage deb rpm --x64 --arm64 --publish never && electron-builder --win nsis --x64 --arm64 --publish never && electron-builder --mac dmg --x64 --arm64 --publish never",
+    "publish:gitcode": "node scripts/publish-gitcode.mjs"
   },
   "devDependencies": {
-    "electron": "^33.4.11",
+    "@eslint/js": "^9.39.5",
+    "electron": "^41.7.1",
     "electron-builder": "^24.13.3",
-    "electron-vite": "^2.3.0",
-    "vite": "^5.4.10"
+    "electron-vite": "^3.1.0",
+    "eslint": "^9.39.4",
+    "globals": "^15.15.0",
+    "prettier": "^3.9.10",
+    "vite": "^6.4.5"
   },
   "build": {
     "appId": "cn.tzzhy.chinesecopybook",
@@ -79,6 +89,11 @@
     ]
   },
   "dependencies": {
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "electron-updater": "^6.8.9"
+  },
+  "allowScripts": {
+    "electron@41.7.1": true,
+    "esbuild@0.25.12": true
   }
 }

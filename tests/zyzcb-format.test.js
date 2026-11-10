@@ -37,9 +37,7 @@ test('缺失或非法字段回落到默认值', () => {
 })
 
 test('JSON 格式工程文件可解析', () => {
-  const json = new TextEncoder().encode(
-    JSON.stringify({ text: '汉字内容', title: 'JSON 标题' })
-  )
+  const json = new TextEncoder().encode(JSON.stringify({ text: '汉字内容', title: 'JSON 标题' }))
   const parsed = parseProject(json)
   assert.equal(parsed.text, '汉字内容')
   assert.equal(parsed.title, 'JSON 标题')

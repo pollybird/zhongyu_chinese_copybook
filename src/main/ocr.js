@@ -38,7 +38,11 @@ export function registerOcr(getWin, resolvePreload, t) {
   // 退出前销毁所有 OCR worker，避免子进程残留
   app.on('before-quit', () => {
     for (const [, worker] of ocrWorkers) {
-      try { worker.terminate() } catch (_) { /* ignore */ }
+      try {
+        worker.terminate()
+      } catch (_) {
+        /* ignore */
+      }
     }
     ocrWorkers.clear()
     for (const timer of idleTimers.values()) clearTimeout(timer)
@@ -61,7 +65,11 @@ function scheduleIdleCleanup(lang) {
     const worker = ocrWorkers.get(lang)
     if (worker) {
       ocrWorkers.delete(lang)
-      try { await worker.terminate() } catch (_) { /* ignore */ }
+      try {
+        await worker.terminate()
+      } catch (_) {
+        /* ignore */
+      }
     }
   }, OCR_IDLE_MS)
   idleTimers.set(lang, timer)
@@ -96,12 +104,14 @@ async function startCapture(resolvePreload) {
       width: Math.round(Math.max(...displays.map((d) => d.size.width)) * maxScale),
       height: Math.round(Math.max(...displays.map((d) => d.size.height)) * maxScale)
     }
-    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: thumbSize })
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: thumbSize
+    })
     if (!sources.length) throw new Error(translator('err.captureFailed'))
 
     for (const display of displays) {
-      const source =
-        sources.find((s) => s.display_id === String(display.id)) || sources[0]
+      const source = sources.find((s) => s.display_id === String(display.id)) || sources[0]
       if (!source) break
 
       const win = new BrowserWindow({
@@ -202,7 +212,11 @@ async function recognize(dataUrl, lang) {
   } catch (e) {
     // 识别异常时销毁该语言 worker，下次重建
     ocrWorkers.delete(langKey)
-    try { await worker.terminate() } catch (_) { /* ignore */ }
+    try {
+      await worker.terminate()
+    } catch (_) {
+      /* ignore */
+    }
     throw e
   } finally {
     // 空闲 5 分钟后自动回收

@@ -1,4 +1,4 @@
-import { drawPageToCanvas, calculatePages, renderPage, PAGE_W, PAGE_H } from './engine/copybook.js'
+import { buildPages, renderPage, PAGE_W, PAGE_H } from './engine/copybook.js'
 import { createT } from '../../shared/i18n.js'
 
 // 隐藏渲染窗口无可见界面，仅同步文档标题语言
@@ -17,11 +17,11 @@ window.api.onPrintData(async (settings) => {
   try {
     await document.fonts.ready
 
-    const totalPages = calculatePages(settings.text || '', settings.grid_type, settings.mode)
+    const pages = buildPages(settings)
     const container = document.getElementById('pages')
     container.innerHTML = ''
 
-    for (let i = 0; i < totalPages; i++) {
+    for (let i = 0; i < pages.length; i++) {
       const pageDiv = document.createElement('div')
       pageDiv.className = 'pdf-page'
       const canvas = document.createElement('canvas')
@@ -29,7 +29,7 @@ window.api.onPrintData(async (settings) => {
       canvas.height = PAGE_H * PRINT_DPR
       const ctx = canvas.getContext('2d')
       ctx.setTransform(PRINT_DPR, 0, 0, PRINT_DPR, 0, 0)
-      renderPage(ctx, settings, i, totalPages)
+      renderPage(ctx, pages[i], settings, i, pages.length)
       pageDiv.appendChild(canvas)
       container.appendChild(pageDiv)
     }

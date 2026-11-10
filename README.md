@@ -4,7 +4,7 @@
 
 生成汉字字帖的桌面应用。输入汉字内容，选择格子类型与生成模式，即可实时预览，并可直接打印、打印预览或导出为 PDF。
 
-当前版本：**2.0.2**（自 2.0.0 起由 PyQt6 重构为 Electron，见 [UPGRADE.md](UPGRADE.md)）
+当前版本：**2.0.3**（自 2.0.0 起由 PyQt6 重构为 Electron，见 [UPGRADE.md](UPGRADE.md)）
 
 版权所有 (c) 2026 泰州姜堰钟毓信息技术有限公司 · 官网：https://www.tzzhy.cn/
 

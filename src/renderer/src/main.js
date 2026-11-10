@@ -7,6 +7,7 @@ import {
   parseProject
 } from './engine/zyzcb-format.js'
 import { showAlert, showQuestion, showPrompt, showTextPage, setModalI18n } from './modals.js'
+import { initUpdateUI, setUpdateI18n } from './update-ui.js'
 import { createT, getLang, getDefaultDoc } from '../../shared/i18n.js'
 import agreementZh from './assets/agreement.txt?raw'
 import agreementEn from './assets/agreement.en.txt?raw'
@@ -25,6 +26,8 @@ const els = {
   fontSize: $('inp-font-size'),
   offsetX: $('inp-offset-x'),
   offsetY: $('inp-offset-y'),
+  lineColor: $('inp-line-color'),
+  traceColor: $('inp-trace-color'),
   gridType: $('inp-grid-type'),
   mode: $('inp-mode'),
   title: $('inp-title'),
@@ -176,11 +179,31 @@ async function loadFonts() {
   // 如果 queryLocalFonts 不可用，回退到常见中文字体列表
   if (fontFamilies.length === 0) {
     fontFamilies = [
-      '楷体', 'KaiTi', '宋体', 'SimSun', '黑体', 'SimHei',
-      '微软雅黑', 'Microsoft YaHei', '等线', 'DengXian',
-      '方正硬笔楷书简体', '方正楷体简体', '方正宋体简体',
-      '仿宋', 'FangSong', '隶书', 'LiSu', '幼圆', 'YouYuan',
-      '华文楷体', 'STKaiti', '华文宋体', 'STSong', '华文黑体', 'STHeiti'
+      '楷体',
+      'KaiTi',
+      '宋体',
+      'SimSun',
+      '黑体',
+      'SimHei',
+      '微软雅黑',
+      'Microsoft YaHei',
+      '等线',
+      'DengXian',
+      '方正硬笔楷书简体',
+      '方正楷体简体',
+      '方正宋体简体',
+      '仿宋',
+      'FangSong',
+      '隶书',
+      'LiSu',
+      '幼圆',
+      'YouYuan',
+      '华文楷体',
+      'STKaiti',
+      '华文宋体',
+      'STSong',
+      '华文黑体',
+      'STHeiti'
     ]
   }
 
@@ -210,6 +233,8 @@ function fillForm(s) {
   els.fontSize.value = s.font_size
   els.offsetX.value = s.offset_x
   els.offsetY.value = s.offset_y
+  els.lineColor.value = s.line_color
+  els.traceColor.value = s.trace_color
   els.gridType.value = s.grid_type
   els.mode.value = s.mode
   els.title.value = s.title
@@ -261,6 +286,16 @@ function bindInputs() {
   bindNumber(els.fontSize, 'font_size', 10, 100)
   bindNumber(els.offsetX, 'offset_x', -50, 50)
   bindNumber(els.offsetY, 'offset_y', -50, 50)
+
+  const bindColor = (input, key) => {
+    input.addEventListener('input', () => {
+      if (syncing || !activeTab) return
+      activeTab.state[key] = input.value
+      markModified()
+    })
+  }
+  bindColor(els.lineColor, 'line_color')
+  bindColor(els.traceColor, 'trace_color')
 
   els.gridType.addEventListener('change', () => {
     activeTab.state.grid_type = els.gridType.value
@@ -394,11 +429,7 @@ async function loadFromPath(filePath) {
 
     // 与原版一致：若当前仅有一个空白标签，则在其中打开
     let target
-    if (
-      tabs.length === 1 &&
-      !tabs[0].filePath &&
-      !tabs[0].modified
-    ) {
+    if (tabs.length === 1 && !tabs[0].filePath && !tabs[0].modified) {
       target = tabs[0]
     } else {
       target = createTab()
@@ -467,10 +498,16 @@ async function printJob(preview) {
     }
     const { ok, reason } = await window.api.printJob(tab.state, 'direct')
     if (!ok && !/cancel/i.test(reason)) {
-      await showAlert(t('msg.printFailTitle'), t('msg.printIncomplete', { detail: reason || t('msg.printUnknown') }))
+      await showAlert(
+        t('msg.printFailTitle'),
+        t('msg.printIncomplete', { detail: reason || t('msg.printUnknown') })
+      )
     }
   } catch (err) {
-    await showAlert(preview ? t('msg.previewFailTitle') : t('msg.printFailTitle'), `${err.message || err}`)
+    await showAlert(
+      preview ? t('msg.previewFailTitle') : t('msg.printFailTitle'),
+      `${err.message || err}`
+    )
   }
 }
 
@@ -556,7 +593,10 @@ function bindOcr() {
     els.ocrStatus.textContent = t('msg.ocrRecognizing')
     try {
       const text = await window.api.ocrRecognize(dataUrl, els.ocrLang.value)
-      const clean = (text || '').replace(/\n{3,}/g, '\n\n').replace(/[ \t]+\n/g, '\n').trim()
+      const clean = (text || '')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .trim()
       if (!clean) {
         els.ocrStatus.hidden = true
         await showAlert(t('msg.ocrEmptyTitle'), t('msg.ocrEmpty'))
@@ -599,6 +639,8 @@ async function init() {
   lang = getLang(locale)
   t = createT(locale)
   setModalI18n(t)
+  setUpdateI18n(t)
+  initUpdateUI()
   applyStaticI18n()
 
   bindInputs()
